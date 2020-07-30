@@ -1,0 +1,9 @@
+2020-07-30 09:55:40,813 INFO o.s.b.StartupInfoLogger [main] Starting PerfIT v1.0-SNAPSHOT on tanmays-mbp.lan with PID 7050 (/Users/tanmaysaha/workspaces/flink/flink-training-day4/data/order-generator.jar started by tanmaysaha in /Users/tanmaysaha/workspaces/flink/flink-training-day4/data)
+2020-07-30 09:55:40,826 INFO o.s.b.SpringApplication [main] No active profile set, falling back to default profiles: default
+2020-07-30 09:55:42,947 INFO o.s.b.StartupInfoLogger [main] Started PerfIT in 2.576 seconds (JVM running for 3.855)
+2020-07-30 09:55:42,951 INFO c.r.w.PerfIT [main] Generation properties: ComplianceTestProperties(ordersPerSec=1200, testDuration=15000, accountsCount=30, subAccountsCount=30, rulesCount=10, allocationsCount=60, ruleDelay=0)
+2020-07-30 09:55:42,978 INFO c.r.w.PerfIT [main] Accounts and sub accounts have been generated. Generating rules, it may take time...
+2020-07-30 09:55:53,045 INFO c.r.w.PerfIT [main] Rules generation and saving took 10066ms
+2020-07-30 09:56:03,056 INFO c.r.w.c.TestUtils$1 [Timer-0] 11582 Orders have been sent. Rate is 1158 messages/sec
+2020-07-30 09:56:08,103 INFO c.r.w.c.ComplianceSender [main] 17641 orders sent in 15.055 seconds, raw throughput=1171.7701760212553
+2020-07-30 09:56:08,110 INFO c.r.w.PerfIT [main] All done
