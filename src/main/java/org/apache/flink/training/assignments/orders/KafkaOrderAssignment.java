@@ -18,12 +18,14 @@ public class KafkaOrderAssignment extends ExerciseBase {
         final String KAFKA_ADDRESS;
         final String IN_TOPIC;
         final String OUT_TOPIC;
+        final String KAFKA_GROUP;
 
         try {
             final ParameterTool params = ParameterTool.fromArgs(args);
             IN_TOPIC = params.has("IN_TOPIC") ? params.get("IN_TOPIC") : "in";
             OUT_TOPIC = params.has("OUT_TOPIC") ? params.get("OUT_TOPIC") : "demo-output";
             KAFKA_ADDRESS = params.getRequired("KAFKA_ADDRESS");
+            KAFKA_GROUP = params.has("KAFKA_GROUP") ? params.get("KAFKA_GROUP") : "";
         } catch (Exception e) {
             System.err.println("No KAFKA_ADDRESS specified. Please run 'KafkaOrderAssignment \n" +
                     "--KAFKA_ADDRESS <localhost:9092> --IN_TOPIC <in> --OUT_TOPIC <demo-output>', \n" +
@@ -34,7 +36,7 @@ public class KafkaOrderAssignment extends ExerciseBase {
         }
 
         final OrderPipeline pipeline = new OrderPipeline(KAFKA_ADDRESS,
-                IN_TOPIC, OUT_TOPIC);
+                IN_TOPIC, OUT_TOPIC, KAFKA_GROUP);
         pipeline.execute();
     }
 

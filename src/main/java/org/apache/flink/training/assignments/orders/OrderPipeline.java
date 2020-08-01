@@ -37,15 +37,18 @@ public class OrderPipeline {
     private final String KAFKA_ADDRESS;
     private final String IN_TOPIC;
     private final String OUT_TOPIC;
-    private static final String KAFKA_GROUP = "";
+    private final String KAFKA_GROUP;
     private static final Logger LOG = LoggerFactory.getLogger(OrderPipeline.class);
 
     public OrderPipeline(final String brokerUrl,
-                         final String input_topic, final String output_topic){
+                         final String input_topic,
+                         final String output_topic,
+                         final String group){
 
         this.KAFKA_ADDRESS=brokerUrl;
         this.IN_TOPIC=input_topic;
         this.OUT_TOPIC=output_topic;
+        this.KAFKA_GROUP=group;
 
     }
 
@@ -58,25 +61,31 @@ public class OrderPipeline {
         //env.setParallelism(ExerciseBase.parallelism);
 
         /**
-         * Create the Order Stream from Kafka
+         * Create the Order Stream from Kafka and keyBy cusip
          */
-        var orderStream = env.addSource(readFromKafka());
+        var orderStream = env.addSource(readFromKafka())
+                .name("kfkaTopicReader").uid("kfkaTopicReader")
+                .keyBy(order -> order.getCusip());
+        /**
         orderStream.addSink(new LogSink<>(LOG,
                 LogSink.LoggerEnum.INFO, "**** orderStream {}"));
+         */
 
         /**
          * Split the orders by allocations
          */
-        var splitOrderByAccountStream = splitOrderStream(orderStream);
-        splitOrderByAccountStream.addSink(new LogSink<>(LOG,
-                LogSink.LoggerEnum.INFO, "**** splitOrderByAccountStream {}"));
+        var splitOrderByAccount = splitOrderStream(orderStream);
+        /**
+        splitOrderByAccount.addSink(new LogSink<>(LOG,
+                LogSink.LoggerEnum.INFO, "**** splitOrderByAccount {}"));
+         */
         /**
          * Create positions by aggregating allocations
          * by account,sub-account and cusip
          */
-        var aggregatedPositionsByAccountStream = createPositions(splitOrderByAccountStream);
-        aggregatedPositionsByAccountStream.addSink(new LogSink<>(LOG,
-                LogSink.LoggerEnum.INFO, "**** aggregatedPositionsByAccountStream {}"));
+        var aggregatedPositionsByAccount = createPositions(splitOrderByAccount);
+        //aggregatedPositionsByAccount.addSink(new LogSink<>(LOG,
+                //LogSink.LoggerEnum.INFO, "**** aggregatedPositionsByAccount {}"));
 
         /**
          * Publish the positions to kafka
@@ -84,7 +93,9 @@ public class OrderPipeline {
          */
         FlinkKafkaProducer010<Position> flinkKafkaProducer = new FlinkKafkaProducer010<Position>(
                 KAFKA_ADDRESS, OUT_TOPIC, new PositionKeyedSerializationSchema(OUT_TOPIC));
-        aggregatedPositionsByAccountStream.addSink(flinkKafkaProducer);
+        aggregatedPositionsByAccount.addSink(flinkKafkaProducer)
+                .name("PublishPositionToKafka")
+                .uid("PublishPositionToKafka");;
 
 
         // execute the transformation pipeline
@@ -99,9 +110,10 @@ public class OrderPipeline {
         Properties props = new Properties();
         props.setProperty("bootstrap.servers", KAFKA_ADDRESS);
         props.setProperty("group.id", KAFKA_GROUP);
-
+         /**
         Properties prodProps = new Properties();
         prodProps.put("bootstrap.servers", KAFKA_ADDRESS);
+        */
 
 
         // Create tbe Kafka Consumer here
@@ -117,8 +129,11 @@ public class OrderPipeline {
     private DataStream<Position> splitOrderStream(final DataStream<Order> orderStream) {
         DataStream<Position> splitOrderByAccountStream = orderStream
                 .assignTimestampsAndWatermarks(new OrderPeriodicWatermarkAssigner())
+                .name("TimestampWatermark").uid("TimestampWatermark")
                 .windowAll(TumblingEventTimeWindows.of(Time.seconds(10)))
-                .process(new SplitOrderWindowFunction());
+                .process(new SplitOrderWindowFunction())
+                .name("splitOrderByAllocation")
+                .uid("splitOrderByAllocation");
         return splitOrderByAccountStream;
     }
 
@@ -134,12 +149,14 @@ public class OrderPipeline {
         var groupOrderByAccountWindowedStream=splitOrderByAccountStream
                 .keyBy(new AccountPositionKeySelector())
                 .timeWindow(Time.seconds(10));
+
         /**
          * Aggregate the position by account,sub-account and cusip
          */
         var aggregatedPositionsByAccountStream = groupOrderByAccountWindowedStream
                 .apply(new PositionAggregationWindowFunction())
-                .name("Aggregate Position Count in a Windowed stream");
+                .name("AggregatePositionByActSubActCusip")
+                .uid("AggregatePositionByActSubActCusip");
 
         return aggregatedPositionsByAccountStream;
     }
