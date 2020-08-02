@@ -3,6 +3,7 @@ package org.apache.flink.training.assignments.orders;
 import org.apache.flink.streaming.api.TimeCharacteristic;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
+import org.apache.flink.streaming.api.windowing.assigners.TumblingProcessingTimeWindows;
 import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer010;
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaProducer010;
@@ -10,10 +11,11 @@ import org.apache.flink.training.assignments.domain.Order;
 import org.apache.flink.training.assignments.domain.Position;
 import org.apache.flink.training.assignments.keys.AccountPositionKeySelector;
 import org.apache.flink.training.assignments.keys.OrderFlatMap;
+
 import org.apache.flink.training.assignments.serializers.OrderKafkaDeserializationSchema;
 import org.apache.flink.training.assignments.serializers.PositionKeyedSerializationSchema;
-import org.apache.flink.training.assignments.watermarks.OrderWatermarkAssigner;
-import org.apache.flink.training.assignments.watermarks.PositionWatermarkAssigner;
+
+import org.apache.flink.training.assignments.utils.ExerciseBase;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,15 +28,15 @@ import java.util.Properties;
  * from kafka and create positions by account, sub-account
  * cusip and publish to kafka
  */
-public class OrderPipeline {
+public class OrderPipelineProcessingTime {
     private final String KAFKA_ADDRESS;
     private final String IN_TOPIC;
     private final String OUT_TOPIC;
     private final String KAFKA_GROUP;
     private final String OUT_CUSIP;
-    private static final Logger LOG = LoggerFactory.getLogger(OrderPipeline.class);
+    private static final Logger LOG = LoggerFactory.getLogger(OrderPipelineProcessingTime.class);
 
-    public OrderPipeline(final Map<String,String> params){
+    public OrderPipelineProcessingTime(final Map<String,String> params){
         this.KAFKA_ADDRESS=params.get(IConstants.KAFKA_ADDRESS);
         this.IN_TOPIC=params.get(IConstants.IN_TOPIC);
         this.OUT_TOPIC=params.get(IConstants.OUT_TOPIC);
@@ -42,13 +44,13 @@ public class OrderPipeline {
         this.OUT_CUSIP=params.get(IConstants.OUT_CUSIP);
     }
 
-
     public void execute() throws Exception{
         // set up streaming execution environment
         var env = StreamExecutionEnvironment.getExecutionEnvironment();
-        env.getConfig().setAutoWatermarkInterval(10000);
-        env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime);
-        //env.setParallelism(ExerciseBase.parallelism);
+        //env.getConfig().setAutoWatermarkInterval(10000);
+        //env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime);
+        env.setStreamTimeCharacteristic(TimeCharacteristic.ProcessingTime);
+        env.setParallelism(ExerciseBase.parallelism);
 
         /**
          * Create the Order Stream from Kafka and keyBy cusip
@@ -118,15 +120,7 @@ public class OrderPipeline {
      */
     private DataStream<Position> splitOrderStream(final DataStream<Order> orderStream) {
         DataStream<Position> splitOrderByAccountStream = orderStream
-                //.assignTimestampsAndWatermarks(new OrderWatermarkAssigner())
-                //.name("TimestampWatermark").uid("TimestampWatermark")
                 .flatMap(new OrderFlatMap())
-                /**
-                .assignTimestampsAndWatermarks(new OrderPeriodicWatermarkAssigner())
-                .name("TimestampWatermark").uid("TimestampWatermark")
-                .windowAll(TumblingEventTimeWindows.of(Time.seconds(10)))
-                .process(new SplitOrderWindowFunction())
-                 */
                 .name("splitOrderByAllocation")
                 .uid("splitOrderByAllocation");
         return splitOrderByAccountStream;
@@ -142,25 +136,14 @@ public class OrderPipeline {
          * Group the order by account, sub-account and cusip
          */
         var groupOrderByAccountWindowedStream=splitOrderByAccountStream
-                .assignTimestampsAndWatermarks(new PositionWatermarkAssigner())
-                .name("TimestampWatermark").uid("TimestampWatermark")
                 .keyBy(new AccountPositionKeySelector())
                 .timeWindow(Time.seconds(10))
-                //.window(TumblingEventTimeWindows.of(Time.seconds(10)))
+                //.window(TumblingProcessingTimeWindows.of(Time.seconds(10)))
                 .sum("quantity");
 
-        /**
-         * Aggregate the position by account,sub-account and cusip
-         */
-        /**
-        var aggregatedPositionsByAccountStream = groupOrderByAccountWindowedStream
-                .apply(new PositionAggregationWindowFunction())
-                .name("AggregatePositionByActSubActCusip")
-                .uid("AggregatePositionByActSubActCusip");
-
-        return aggregatedPositionsByAccountStream;
-         */
         return groupOrderByAccountWindowedStream;
     }
+
+
 
 }

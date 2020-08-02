@@ -12,7 +12,7 @@ import org.apache.flink.training.assignments.domain.Order;
  */
 public class OrderPeriodicWatermarkAssigner implements AssignerWithPeriodicWatermarks<Order> {
     //private final long maxOutOfOrderness = 3500; // 3.5 seconds
-    private long lastwaterMark;
+    //private long lastwaterMark;
     private long currentMaxTimestamp;
 
 
@@ -25,10 +25,6 @@ public class OrderPeriodicWatermarkAssigner implements AssignerWithPeriodicWater
 
     @Override
     public Watermark getCurrentWatermark() {
-        if( currentMaxTimestamp > lastwaterMark){
-            lastwaterMark = currentMaxTimestamp + 10000;
-            return new Watermark(lastwaterMark);
-        }
-        return null;
+        return new Watermark(currentMaxTimestamp);
     }
 }

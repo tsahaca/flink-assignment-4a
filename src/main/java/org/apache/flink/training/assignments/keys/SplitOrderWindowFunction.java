@@ -15,16 +15,16 @@ public class SplitOrderWindowFunction extends ProcessAllWindowFunction<Order, Po
     private static final Logger LOG = LoggerFactory.getLogger(SplitOrderWindowFunction.class);
     @Override
     public void process(Context context, Iterable<Order> iterable, Collector<Position> collector) throws Exception {
+        //LOG.info("Flattening orders {}", iterable);
         for (Order order : iterable) {
-            LOG.debug("Getting accounts for orderId= {}", order.getOrderId());
+            //LOG.debug("Getting accounts for orderId= {}", order.getOrderId());
             order.getAllocations().forEach(allocation -> {
                 collector.collect(
-                        Position.builder()
-                                .account(allocation.getAccount())
-                                .subAccount(allocation.getSubAccount())
-                                .cusip(order.getCusip())
-                                .quantity(adjustQuantity(order,allocation))
-                                .build());
+
+                        new Position(allocation.getAccount(),
+                                allocation.getSubAccount(),
+                                order.getCusip(),
+                                adjustQuantity(order,allocation)));
             });
         }
 

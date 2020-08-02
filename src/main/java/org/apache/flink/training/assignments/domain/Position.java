@@ -8,13 +8,23 @@ import java.math.BigDecimal;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
-@Builder
-public class Position implements Serializable {
+//@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+//public class Position implements Serializable {
+public class Position extends IncomingEvent {
+
     private static final long serialVersionUID = -2499451017707868513L;
     private String account;
     private String subAccount;
     private String cusip;
-    private int quantity;
+    public int quantity;
+
+    @Override
+    public byte[] key() {
+        return account.getBytes();
+    }
 }

@@ -5,11 +5,10 @@ import org.apache.flink.streaming.api.functions.timestamps.AscendingTimestampExt
 import org.apache.flink.training.assignments.domain.Order;
 
 
-public class KafkaPartitionAwareWatermarkAssigner extends AscendingTimestampExtractor<Order> {
+public class OrderWatermarkAssigner extends AscendingTimestampExtractor<Order> {
 
     @Override
     public long extractAscendingTimestamp(Order order) {
-        //return order.getTimestamp();
-        return System.currentTimeMillis() - 10;
+        return order.getTimestamp();
     }
 }

@@ -24,12 +24,11 @@ public class PositionAggregationWindowFunction implements WindowFunction<Positio
             count += position.getQuantity();
         }
 
-        Position aggregatedPosition = Position.builder()
-                .account(tuple.f0)
-                .subAccount(tuple.f1)
-                .cusip(tuple.f2)
-                .quantity(count)
-                .build();
+
+        Position aggregatedPosition = new Position(tuple.f0,
+                tuple.f1,
+                tuple.f2,
+                count);
         collector.collect(aggregatedPosition);
     }
 }

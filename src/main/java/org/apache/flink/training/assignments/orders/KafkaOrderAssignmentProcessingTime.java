@@ -9,9 +9,9 @@ import java.util.HashMap;
 import java.util.Map;
 
 
-public class KafkaOrderAssignment extends ExerciseBase {
+public class KafkaOrderAssignmentProcessingTime extends ExerciseBase {
 
-    private static final Logger LOG = LoggerFactory.getLogger(KafkaOrderAssignment.class);
+    private static final Logger LOG = LoggerFactory.getLogger(KafkaOrderAssignmentProcessingTime.class);
 
 
 
@@ -45,7 +45,7 @@ public class KafkaOrderAssignment extends ExerciseBase {
         params.put(IConstants.KAFKA_GROUP, KAFKA_GROUP);
         params.put(IConstants.OUT_CUSIP, OUT_CUSIP);
 
-        final OrderPipeline pipeline = new OrderPipeline(params);
+        final OrderPipelineProcessingTime pipeline = new OrderPipelineProcessingTime(params);
         pipeline.execute();
     }
 
