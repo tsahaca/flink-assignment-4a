@@ -1,15 +1,21 @@
 package org.apache.flink.training.assignments.orders;
 
+import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.streaming.api.TimeCharacteristic;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
+import org.apache.flink.streaming.api.functions.KeyedProcessFunction;
 import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer010;
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaProducer010;
+import org.apache.flink.training.assignments.domain.Allocation;
 import org.apache.flink.training.assignments.domain.Order;
 import org.apache.flink.training.assignments.domain.Position;
 import org.apache.flink.training.assignments.keys.AccountPositionKeySelector;
 import org.apache.flink.training.assignments.keys.OrderFlatMap;
+import org.apache.flink.training.assignments.keys.PositionAggregatorByCusip;
+import org.apache.flink.training.assignments.keys.PositionByCusipWindowFunction;
+import org.apache.flink.training.assignments.serializers.CusipKeyedSerializationSchema;
 import org.apache.flink.training.assignments.serializers.OrderKafkaDeserializationSchema;
 import org.apache.flink.training.assignments.serializers.PositionKeyedSerializationSchema;
 import org.apache.flink.training.assignments.watermarks.OrderWatermarkAssigner;
@@ -17,6 +23,7 @@ import org.apache.flink.training.assignments.watermarks.PositionWatermarkAssigne
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
@@ -85,7 +92,17 @@ public class OrderPipeline {
                 KAFKA_ADDRESS, OUT_TOPIC, new PositionKeyedSerializationSchema(OUT_TOPIC));
         aggregatedPositionsByAccount.addSink(flinkKafkaProducer)
                 .name("PublishPositionToKafka")
-                .uid("PublishPositionToKafka");;
+                .uid("PublishPositionToKafka");
+        /**
+         * Aggegate Positions by Cusip and publish to kafka
+         */
+        var positionsByCusip = aggregatePositionsByCusip(aggregatedPositionsByAccount);
+        FlinkKafkaProducer010<Tuple2<String, List<Allocation>>> flinkKafkaProducerCusip = new FlinkKafkaProducer010<Tuple2<String, List<Allocation>>>(
+                KAFKA_ADDRESS, OUT_CUSIP, new CusipKeyedSerializationSchema(OUT_CUSIP));
+        positionsByCusip.addSink(flinkKafkaProducerCusip)
+                .name("PublishPositionByCusipToKafka")
+                .uid("PublishPositionByCusipToKafka");
+
 
 
         // execute the transformation pipeline
@@ -147,7 +164,9 @@ public class OrderPipeline {
                 .keyBy(new AccountPositionKeySelector())
                 .timeWindow(Time.seconds(10))
                 //.window(TumblingEventTimeWindows.of(Time.seconds(10)))
-                .sum("quantity");
+                .sum("quantity")
+                .name("AggregatePositionByActSubActCusip")
+                .uid("AggregatePositionByActSubActCusip");
 
         /**
          * Aggregate the position by account,sub-account and cusip
@@ -161,6 +180,17 @@ public class OrderPipeline {
         return aggregatedPositionsByAccountStream;
          */
         return groupOrderByAccountWindowedStream;
+    }
+
+    private DataStream<Tuple2<String, List<Allocation>>> aggregatePositionsByCusip(DataStream<Position> aggregatedPositionsByAccount){
+        var positionsByCusip = aggregatedPositionsByAccount
+                .keyBy(position -> position.getCusip())
+                .timeWindow(Time.seconds(10))
+                //.apply(new PositionByCusipWindowFunction())
+                .aggregate(new PositionAggregatorByCusip())
+                .name("AggregatePositionByCusip")
+                .uid("AggregatePositionByCusip");
+        return positionsByCusip;
     }
 
 }
