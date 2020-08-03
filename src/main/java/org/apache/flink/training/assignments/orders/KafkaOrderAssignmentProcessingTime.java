@@ -13,15 +13,16 @@ public class KafkaOrderAssignmentProcessingTime extends ExerciseBase {
 
     private static final Logger LOG = LoggerFactory.getLogger(KafkaOrderAssignmentProcessingTime.class);
 
-
-
+    /**
+    // --KAFKA_ADDRESS kafka.dest.tanmay.wsn.riskfocus.com:9092 --IN_TOPIC in --OUT_TOPIC positionsByAct --OUT_CUSIP positionsBySymbol
+    */
     public static void main(String[] args) throws Exception {
 
         final String KAFKA_ADDRESS;
         final String IN_TOPIC;
         final String OUT_TOPIC;
         final String KAFKA_GROUP;
-        final String OUT_CUSIP; // positionsByCusip
+        final String OUT_CUSIP; // positionsBySymbol
 
         try {
             final ParameterTool params = ParameterTool.fromArgs(args);

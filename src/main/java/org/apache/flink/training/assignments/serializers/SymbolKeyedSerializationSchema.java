@@ -2,19 +2,23 @@ package org.apache.flink.training.assignments.serializers;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.streaming.util.serialization.KeyedSerializationSchema;
-import org.apache.flink.training.assignments.domain.Position;
+import org.apache.flink.training.assignments.domain.Allocation;
+import org.apache.flink.training.assignments.domain.PositionByCusip;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class PositionKeyedSerializationSchema implements KeyedSerializationSchema<Position> {
-    private static final Logger LOG = LoggerFactory.getLogger(PositionKeyedSerializationSchema.class);
+import java.util.List;
+
+public class SymbolKeyedSerializationSchema implements KeyedSerializationSchema<PositionByCusip> {
+    private static final Logger LOG = LoggerFactory.getLogger(SymbolKeyedSerializationSchema.class);
 
     static ObjectMapper objectMapper = new ObjectMapper();//.registerModule(new JavaTimeModule());
 
     private String topic;
 
-    public PositionKeyedSerializationSchema(final String topic){
+    public SymbolKeyedSerializationSchema(final String topic){
         this.topic=topic;
     }
 
@@ -24,22 +28,22 @@ public class PositionKeyedSerializationSchema implements KeyedSerializationSchem
      * @return
      */
     @Override
-    public byte[] serializeKey(Position element) {
-        return element.getAccount().getBytes();
+    public byte[] serializeKey(PositionByCusip element) {
+        return element.getCusip().getBytes();
     }
 
     @Override
-    public byte[] serializeValue(Position element) {
+    public byte[] serializeValue(PositionByCusip element) {
         try {
             return objectMapper.writeValueAsBytes(element);
         } catch (JsonProcessingException e) {
-            LOG.error("****ERROR in Serializing Position {}", element);
+            LOG.error("****ERROR in Serializing PositionByCusip {}", element);
         }
         return null;
     }
 
     @Override
-    public String getTargetTopic(Position element) {
+    public String getTargetTopic(PositionByCusip element) {
         return this.topic;
     }
 }

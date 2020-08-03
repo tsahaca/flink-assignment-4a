@@ -11,14 +11,17 @@ import org.apache.flink.streaming.connectors.kafka.FlinkKafkaProducer010;
 import org.apache.flink.training.assignments.domain.Allocation;
 import org.apache.flink.training.assignments.domain.Order;
 import org.apache.flink.training.assignments.domain.Position;
+import org.apache.flink.training.assignments.domain.PositionByCusip;
 import org.apache.flink.training.assignments.keys.AccountPositionKeySelector;
 import org.apache.flink.training.assignments.keys.OrderFlatMap;
 
 import org.apache.flink.training.assignments.keys.PositionAggregatorByCusip;
+import org.apache.flink.training.assignments.keys.PositionAggregatorBySymbol;
 import org.apache.flink.training.assignments.serializers.CusipKeyedSerializationSchema;
 import org.apache.flink.training.assignments.serializers.OrderKafkaDeserializationSchema;
 import org.apache.flink.training.assignments.serializers.PositionKeyedSerializationSchema;
 
+import org.apache.flink.training.assignments.serializers.SymbolKeyedSerializationSchema;
 import org.apache.flink.training.assignments.utils.ExerciseBase;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,7 +58,7 @@ public class OrderPipelineProcessingTime {
         //env.getConfig().setAutoWatermarkInterval(10000);
         //env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime);
         env.setStreamTimeCharacteristic(TimeCharacteristic.ProcessingTime);
-        env.setParallelism(ExerciseBase.parallelism);
+        //env.setParallelism(ExerciseBase.parallelism);
 
         /**
          * Create the Order Stream from Kafka and keyBy cusip
@@ -97,9 +100,17 @@ public class OrderPipelineProcessingTime {
         /**
          * Aggegate Positions by Cusip and publish to kafka
          */
+        /**
         var positionsByCusip = aggregatePositionsByCusip(aggregatedPositionsByAccount);
         FlinkKafkaProducer010<Tuple2<String, List<Allocation>>> flinkKafkaProducerCusip = new FlinkKafkaProducer010<Tuple2<String, List<Allocation>>>(
                 KAFKA_ADDRESS, OUT_CUSIP, new CusipKeyedSerializationSchema(OUT_CUSIP));
+        positionsByCusip.addSink(flinkKafkaProducerCusip)
+                .name("PublishPositionByCusipToKafka")
+                .uid("PublishPositionByCusipToKafka");
+        */
+        var positionsByCusip = aggregatePositionsBySymbol(aggregatedPositionsByAccount);
+        FlinkKafkaProducer010<PositionByCusip> flinkKafkaProducerCusip = new FlinkKafkaProducer010<PositionByCusip>(
+                KAFKA_ADDRESS, OUT_CUSIP, new SymbolKeyedSerializationSchema(OUT_CUSIP));
         positionsByCusip.addSink(flinkKafkaProducerCusip)
                 .name("PublishPositionByCusipToKafka")
                 .uid("PublishPositionByCusipToKafka");
@@ -169,6 +180,17 @@ public class OrderPipelineProcessingTime {
                 .aggregate(new PositionAggregatorByCusip())
                 .name("AggregatePositionByCusip")
                 .uid("AggregatePositionByCusip");
+        return positionsByCusip;
+    }
+
+    private DataStream<PositionByCusip> aggregatePositionsBySymbol(DataStream<Position> aggregatedPositionsByAccount) {
+        var positionsByCusip = aggregatedPositionsByAccount
+                .keyBy(position -> position.getCusip())
+                .timeWindow(Time.seconds(10))
+                //.apply(new PositionByCusipWindowFunction())
+                .aggregate(new PositionAggregatorBySymbol())
+                .name("AggregatePositionBySymbol")
+                .uid("AggregatePositionBySymbol");
         return positionsByCusip;
     }
 

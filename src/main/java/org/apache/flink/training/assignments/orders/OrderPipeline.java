@@ -5,20 +5,22 @@ import org.apache.flink.streaming.api.TimeCharacteristic;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.KeyedProcessFunction;
+import org.apache.flink.streaming.api.windowing.assigners.TumblingEventTimeWindows;
 import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer010;
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaProducer010;
 import org.apache.flink.training.assignments.domain.Allocation;
 import org.apache.flink.training.assignments.domain.Order;
 import org.apache.flink.training.assignments.domain.Position;
-import org.apache.flink.training.assignments.keys.AccountPositionKeySelector;
-import org.apache.flink.training.assignments.keys.OrderFlatMap;
-import org.apache.flink.training.assignments.keys.PositionAggregatorByCusip;
-import org.apache.flink.training.assignments.keys.PositionByCusipWindowFunction;
+import org.apache.flink.training.assignments.domain.PositionByCusip;
+import org.apache.flink.training.assignments.keys.*;
 import org.apache.flink.training.assignments.serializers.CusipKeyedSerializationSchema;
 import org.apache.flink.training.assignments.serializers.OrderKafkaDeserializationSchema;
 import org.apache.flink.training.assignments.serializers.PositionKeyedSerializationSchema;
+import org.apache.flink.training.assignments.serializers.SymbolKeyedSerializationSchema;
+import org.apache.flink.training.assignments.watermarks.OrderPeriodicWatermarkAssigner;
 import org.apache.flink.training.assignments.watermarks.OrderWatermarkAssigner;
+import org.apache.flink.training.assignments.watermarks.PositionPeriodicWatermarkAssigner;
 import org.apache.flink.training.assignments.watermarks.PositionWatermarkAssigner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -63,6 +65,7 @@ public class OrderPipeline {
         var orderStream = env.addSource(readFromKafka())
                 .name("kfkaTopicReader").uid("kfkaTopicReader")
                 .keyBy(order -> order.getCusip());
+
         /**
         orderStream.addSink(new LogSink<>(LOG,
                 LogSink.LoggerEnum.INFO, "**** orderStream {}"));
@@ -96,13 +99,21 @@ public class OrderPipeline {
         /**
          * Aggegate Positions by Cusip and publish to kafka
          */
+        /**
         var positionsByCusip = aggregatePositionsByCusip(aggregatedPositionsByAccount);
         FlinkKafkaProducer010<Tuple2<String, List<Allocation>>> flinkKafkaProducerCusip = new FlinkKafkaProducer010<Tuple2<String, List<Allocation>>>(
                 KAFKA_ADDRESS, OUT_CUSIP, new CusipKeyedSerializationSchema(OUT_CUSIP));
         positionsByCusip.addSink(flinkKafkaProducerCusip)
                 .name("PublishPositionByCusipToKafka")
                 .uid("PublishPositionByCusipToKafka");
+         */
 
+        var positionsByCusip = aggregatePositionsBySymbol(aggregatedPositionsByAccount);
+        FlinkKafkaProducer010<PositionByCusip> flinkKafkaProducerCusip = new FlinkKafkaProducer010<PositionByCusip>(
+                KAFKA_ADDRESS, OUT_CUSIP, new SymbolKeyedSerializationSchema(OUT_CUSIP));
+        positionsByCusip.addSink(flinkKafkaProducerCusip)
+                .name("PublishPositionByCusipToKafka")
+                .uid("PublishPositionByCusipToKafka");
 
 
         // execute the transformation pipeline
@@ -135,8 +146,6 @@ public class OrderPipeline {
      */
     private DataStream<Position> splitOrderStream(final DataStream<Order> orderStream) {
         DataStream<Position> splitOrderByAccountStream = orderStream
-                //.assignTimestampsAndWatermarks(new OrderWatermarkAssigner())
-                //.name("TimestampWatermark").uid("TimestampWatermark")
                 .flatMap(new OrderFlatMap())
                 /**
                 .assignTimestampsAndWatermarks(new OrderPeriodicWatermarkAssigner())
@@ -159,7 +168,7 @@ public class OrderPipeline {
          * Group the order by account, sub-account and cusip
          */
         var groupOrderByAccountWindowedStream=splitOrderByAccountStream
-                .assignTimestampsAndWatermarks(new PositionWatermarkAssigner())
+                .assignTimestampsAndWatermarks(new PositionPeriodicWatermarkAssigner())
                 .name("TimestampWatermark").uid("TimestampWatermark")
                 .keyBy(new AccountPositionKeySelector())
                 .timeWindow(Time.seconds(10))
@@ -190,6 +199,17 @@ public class OrderPipeline {
                 .aggregate(new PositionAggregatorByCusip())
                 .name("AggregatePositionByCusip")
                 .uid("AggregatePositionByCusip");
+        return positionsByCusip;
+    }
+
+    private DataStream<PositionByCusip> aggregatePositionsBySymbol(DataStream<Position> aggregatedPositionsByAccount){
+        var positionsByCusip = aggregatedPositionsByAccount
+                .keyBy(position -> position.getCusip())
+                .timeWindow(Time.seconds(10))
+                //.apply(new PositionByCusipWindowFunction())
+                .aggregate(new PositionAggregatorBySymbol())
+                .name("AggregatePositionBySymbol")
+                .uid("AggregatePositionBySymbol");
         return positionsByCusip;
     }
 

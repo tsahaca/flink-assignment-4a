@@ -1,6 +1,7 @@
 package org.apache.flink.training.assignments.domain;
 
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -14,7 +15,12 @@ public class PositionByCusip extends IncomingEvent {
         this.allocations = allocations;
     }
 
+    public void addAllocation(final Allocation allocation){
+        this.allocations.add(allocation);
+    }
+
     public PositionByCusip() {
+        this.allocations = new ArrayList<>();
     }
 
     public static PositionByCusip.PositionByCusipBuilder builder() {

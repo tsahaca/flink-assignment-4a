@@ -14,7 +14,9 @@ public class KafkaOrderAssignment extends ExerciseBase {
     private static final Logger LOG = LoggerFactory.getLogger(KafkaOrderAssignment.class);
 
 
-
+    /**
+     // --KAFKA_ADDRESS kafka.dest.tanmay.wsn.riskfocus.com:9092 --IN_TOPIC in --OUT_TOPIC positionsByAct --OUT_CUSIP positionsBySymbol
+     */
     public static void main(String[] args) throws Exception {
 
         final String KAFKA_ADDRESS;
