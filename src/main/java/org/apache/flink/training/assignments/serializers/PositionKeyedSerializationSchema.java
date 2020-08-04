@@ -2,6 +2,7 @@ package org.apache.flink.training.assignments.serializers;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.apache.flink.streaming.util.serialization.KeyedSerializationSchema;
 import org.apache.flink.training.assignments.domain.Position;
 import org.slf4j.Logger;
@@ -10,7 +11,7 @@ import org.slf4j.LoggerFactory;
 public class PositionKeyedSerializationSchema implements KeyedSerializationSchema<Position> {
     private static final Logger LOG = LoggerFactory.getLogger(PositionKeyedSerializationSchema.class);
 
-    static ObjectMapper objectMapper = new ObjectMapper();//.registerModule(new JavaTimeModule());
+    static ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
 
     private String topic;
 

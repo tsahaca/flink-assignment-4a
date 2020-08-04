@@ -2,6 +2,7 @@ package org.apache.flink.training.assignments.serializers;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.streaming.util.serialization.KeyedSerializationSchema;
 import org.apache.flink.training.assignments.domain.Allocation;
@@ -14,7 +15,7 @@ import java.util.List;
 public class SymbolKeyedSerializationSchema implements KeyedSerializationSchema<PositionByCusip> {
     private static final Logger LOG = LoggerFactory.getLogger(SymbolKeyedSerializationSchema.class);
 
-    static ObjectMapper objectMapper = new ObjectMapper();//.registerModule(new JavaTimeModule());
+    static ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
 
     private String topic;
 

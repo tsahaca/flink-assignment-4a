@@ -6,7 +6,7 @@ public interface IConstants {
     String OUT_TOPIC="OUT_TOPIC";
     String KAFKA_GROUP="KAFKA_GROUP";
     String OUT_CUSIP="OUT_CUSIP";
-    String DEFAULT_OUT_TOPIC="demo-output";
-    String DEFAULT_OUT_CUSIP="positionsByCusip";
+    String DEFAULT_OUT_TOPIC="positionsByAct";
+    String DEFAULT_OUT_CUSIP="positionsBySymbol";
     String DEFAULT_IN_TOPIC="in";
  }

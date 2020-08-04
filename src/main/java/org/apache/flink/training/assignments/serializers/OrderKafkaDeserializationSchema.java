@@ -1,6 +1,7 @@
 package org.apache.flink.training.assignments.serializers;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.apache.flink.api.common.typeinfo.BasicTypeInfo;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.typeutils.TupleTypeInfo;
@@ -15,7 +16,7 @@ public class OrderKafkaDeserializationSchema implements KafkaDeserializationSche
 {
     private static final Logger LOG = LoggerFactory.getLogger(OrderKafkaDeserializationSchema.class);
 
-    static ObjectMapper objectMapper = new ObjectMapper();
+    static ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());;
 
     @Override
     public boolean isEndOfStream(Order nextElement) {

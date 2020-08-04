@@ -2,12 +2,13 @@ package org.apache.flink.training.assignments.serializers;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.streaming.util.serialization.KeyedSerializationSchema;
 import org.apache.flink.training.assignments.domain.Order;
 
 public class OrderKeyedSerializationSchema implements KeyedSerializationSchema<Tuple2<String, Order>> {
-    static ObjectMapper objectMapper = new ObjectMapper();//.registerModule(new JavaTimeModule());
+    static ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
 
     private String topic;
 
