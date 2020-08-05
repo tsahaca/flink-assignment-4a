@@ -12,7 +12,7 @@ public class OrderSerializationSchema
         implements SerializationSchema<Order> {
     private static final Logger LOG = LoggerFactory.getLogger(OrderSerializationSchema.class);
 
-    private static ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
+    private static ObjectMapper objectMapper = new ObjectMapper();//.registerModule(new JavaTimeModule());
 
     @Override
     public byte[] serialize(Order element) {

@@ -11,7 +11,7 @@ import org.apache.flink.training.assignments.domain.Position;
 import java.util.List;
 
 public class CusipKeyedSerializationSchema implements KeyedSerializationSchema<Tuple2<String, List<Allocation>>> {
-    static ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
+    static ObjectMapper objectMapper = new ObjectMapper();
 
     private String topic;
 

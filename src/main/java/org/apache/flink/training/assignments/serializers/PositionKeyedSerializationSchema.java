@@ -11,7 +11,7 @@ import org.slf4j.LoggerFactory;
 public class PositionKeyedSerializationSchema implements KeyedSerializationSchema<Position> {
     private static final Logger LOG = LoggerFactory.getLogger(PositionKeyedSerializationSchema.class);
 
-    static ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
+    static ObjectMapper objectMapper = new ObjectMapper();//.registerModule(new JavaTimeModule());
 
     private String topic;
 

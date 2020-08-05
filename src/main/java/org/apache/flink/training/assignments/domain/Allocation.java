@@ -1,8 +1,11 @@
 package org.apache.flink.training.assignments.domain;
 
+import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import java.io.Serializable;
 import java.util.Objects;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class Allocation implements Serializable {
     private static final long serialVersionUID = -887981985593847911L;
     private String account;

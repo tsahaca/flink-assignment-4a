@@ -1,10 +1,8 @@
 package org.apache.flink.training.assignments.serializers;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import org.apache.flink.api.common.typeinfo.BasicTypeInfo;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
-import org.apache.flink.api.java.typeutils.TupleTypeInfo;
+import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.DeserializationFeature;
 import org.apache.flink.streaming.connectors.kafka.KafkaDeserializationSchema;
 import org.apache.flink.training.assignments.domain.Order;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -12,11 +10,19 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 
+
 public class OrderKafkaDeserializationSchema implements KafkaDeserializationSchema<Order>
 {
     private static final Logger LOG = LoggerFactory.getLogger(OrderKafkaDeserializationSchema.class);
 
-    static ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());;
+    static ObjectMapper objectMapper = new ObjectMapper();
+            //.registerModule(new JavaTimeModule())
+            //.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+    /**
+    static {
+        objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+    }*/
+
 
     @Override
     public boolean isEndOfStream(Order nextElement) {

@@ -10,7 +10,7 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import javax.annotation.Nullable;
 
 public class OrderKafkaSerializationSchema implements KafkaSerializationSchema<Tuple2<String,Order>> {
-    static ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
+    static ObjectMapper objectMapper = new ObjectMapper();//.registerModule(new JavaTimeModule());
     private String topic;
 
     public OrderKafkaSerializationSchema(final String topic){

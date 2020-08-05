@@ -15,7 +15,7 @@ import java.util.List;
 public class SymbolKeyedSerializationSchema implements KeyedSerializationSchema<PositionByCusip> {
     private static final Logger LOG = LoggerFactory.getLogger(SymbolKeyedSerializationSchema.class);
 
-    static ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
+    static ObjectMapper objectMapper = new ObjectMapper();//.registerModule(new JavaTimeModule());
 
     private String topic;
 

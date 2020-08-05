@@ -11,7 +11,7 @@ import java.io.IOException;
 public class OrderDeserializationSchema implements
         DeserializationSchema<Order> {
 
-    static ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
+    static ObjectMapper objectMapper = new ObjectMapper();//.registerModule(new JavaTimeModule());
     @Override
     public Order deserialize(byte[] bytes) throws IOException {
         return objectMapper.readValue(bytes, Order.class);

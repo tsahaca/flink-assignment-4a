@@ -29,7 +29,7 @@ public class KafkaOrderAssignment extends ExerciseBase {
             final ParameterTool params = ParameterTool.fromArgs(args);
             IN_TOPIC = params.has("IN_TOPIC") ? params.get("IN_TOPIC") : IConstants.DEFAULT_IN_TOPIC;
             OUT_TOPIC = params.has("OUT_TOPIC") ? params.get("OUT_TOPIC") : IConstants.DEFAULT_OUT_TOPIC;
-            KAFKA_ADDRESS = params.getRequired("KAFKA_ADDRESS");
+            KAFKA_ADDRESS = params.has("KAFKA_ADDRESS") ? params.get("KAFKA_ADDRESS") : IConstants.DEFASULT_KAFKA_ADDRESS;
             KAFKA_GROUP = params.has("KAFKA_GROUP") ? params.get("KAFKA_GROUP") : "";
             OUT_CUSIP = params.has("OUT_CUSIP") ? params.get("OUT_CUSIP") : IConstants.DEFAULT_OUT_CUSIP;
         } catch (Exception e) {

@@ -27,8 +27,7 @@ public class PositionAggregatorBySymbol
 	public PositionByCusip add(Position value, PositionByCusip accumulator) {
 		accumulator.setTimestamp(System.currentTimeMillis());
 		accumulator.setCusip(value.getCusip());
-		accumulator.addAllocation(new Allocation(value.getAccount(),
-				value.getSubAccount(), value.getQuantity()));
+		accumulator.setQuantity(accumulator.getQuantity() + value.getQuantity());
 		return accumulator;
 	}
 
@@ -40,10 +39,9 @@ public class PositionAggregatorBySymbol
 	@Override
 	public PositionByCusip merge(PositionByCusip a,
 								 PositionByCusip b) {
-		List<Allocation> list = new ArrayList<Allocation>();
-		list.addAll(a.getAllocations());
-		list.addAll(b.getAllocations());
-		PositionByCusip pcusip=new PositionByCusip(a.getCusip(), list);
+
+		PositionByCusip pcusip=new PositionByCusip(a.getCusip(),
+				a.getQuantity()+b.getQuantity());
 		pcusip.setTimestamp(System.currentTimeMillis());
 
 		return pcusip;

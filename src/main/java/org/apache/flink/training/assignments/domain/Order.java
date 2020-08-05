@@ -1,9 +1,12 @@
 package org.apache.flink.training.assignments.domain;
 
+import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Objects;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class Order extends IncomingEvent {
     private static final long serialVersionUID = 7946678872780554209L;
     private String orderId;
@@ -14,6 +17,7 @@ public class Order extends IncomingEvent {
     private String currency;
     private int quantity;
     private long orderTime;
+
     private List<Allocation> allocations;
 
     public Order(String orderId, String cusip, String assetType, BuySell buySell, BigDecimal bidOffer, String currency, int quantity, long orderTime, List<Allocation> allocations) {
