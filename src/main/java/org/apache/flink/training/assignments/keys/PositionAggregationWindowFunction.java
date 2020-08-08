@@ -19,16 +19,19 @@ public class PositionAggregationWindowFunction implements WindowFunction<Positio
 
         //The main counting bit for position quantity
         int count = 0;
+        String orderId="";
         for (Position position : positions
         ) {
             count += position.getQuantity();
+            orderId = position.getOrderId();
         }
 
 
         Position aggregatedPosition = new Position(tuple.f0,
                 tuple.f1,
                 tuple.f2,
-                count);
+                count,
+                orderId);
         collector.collect(aggregatedPosition);
     }
 }

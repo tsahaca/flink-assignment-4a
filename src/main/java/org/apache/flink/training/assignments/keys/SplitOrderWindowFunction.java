@@ -24,7 +24,8 @@ public class SplitOrderWindowFunction extends ProcessAllWindowFunction<Order, Po
                         new Position(allocation.getAccount(),
                                 allocation.getSubAccount(),
                                 order.getCusip(),
-                                adjustQuantity(order,allocation)));
+                                adjustQuantity(order,allocation),
+                                order.getOrderId()));
             });
         }
 

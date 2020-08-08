@@ -16,6 +16,7 @@ public class PositionByCusip extends IncomingEvent {
     private static final long serialVersionUID = 7946678872780554209L;
     private String cusip;
     private int quantity;
+    private String orderId;
 
     @Override
     public byte[] key() {

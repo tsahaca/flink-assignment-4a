@@ -20,14 +20,16 @@ public class PositionAggregatorBySymbol
 	
 	@Override
 	public PositionByCusip createAccumulator() {
-		return new PositionByCusip();
+		PositionByCusip positionByCusip = new PositionByCusip();
+		positionByCusip.setTimestamp(System.currentTimeMillis());
+		return positionByCusip;
 	}
 
 	@Override
 	public PositionByCusip add(Position value, PositionByCusip accumulator) {
-		accumulator.setTimestamp(System.currentTimeMillis());
 		accumulator.setCusip(value.getCusip());
 		accumulator.setQuantity(accumulator.getQuantity() + value.getQuantity());
+		accumulator.setOrderId(value.getOrderId());
 		return accumulator;
 	}
 
@@ -41,8 +43,9 @@ public class PositionAggregatorBySymbol
 								 PositionByCusip b) {
 
 		PositionByCusip pcusip=new PositionByCusip(a.getCusip(),
-				a.getQuantity()+b.getQuantity());
+				a.getQuantity()+b.getQuantity(), a.getOrderId());
 		pcusip.setTimestamp(System.currentTimeMillis());
+
 
 		return pcusip;
 	}

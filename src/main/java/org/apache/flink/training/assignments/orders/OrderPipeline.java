@@ -124,7 +124,7 @@ public class OrderPipeline {
      * Read Block Orders from Kafka
      * @return
      */
-    private FlinkKafkaConsumer010<Order> readFromKafka(){
+    public FlinkKafkaConsumer010<Order> readFromKafka(){
         Properties props = new Properties();
         props.setProperty("bootstrap.servers", KAFKA_ADDRESS);
         props.setProperty("group.id", KAFKA_GROUP);

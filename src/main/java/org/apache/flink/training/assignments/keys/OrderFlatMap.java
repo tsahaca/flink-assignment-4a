@@ -14,7 +14,7 @@ public class OrderFlatMap implements FlatMapFunction<Order, Position> {
             Position position=  new Position(allocation.getAccount(),
                     allocation.getSubAccount(),
                     order.getCusip(),
-                    adjustQuantity(order,allocation));
+                    adjustQuantity(order,allocation),order.getOrderId());
             position.setTimestamp(order.getTimestamp());
             collector.collect(position);
 

@@ -28,37 +28,37 @@ public class DataStreamTest extends ExerciseBase {
                                 "AC1",
                                 "SB1",
                                 "CUSIP1",
-                                100
+                                100,"Order-100"
                         ),
                         new Position(
                                 "AC1",
                                 "SB1",
                                 "CUSIP1",
-                                250
+                                250,"Order-200"
                         ),
                         new Position(
                                 "AC1",
                                 "SB1",
                                 "CUSIP1",
-                                -70
+                                -70,"Order-300"
                         ),
                         new Position(
                                 "AC2",
                                 "SB2",
                                 "CUSIP1",
-                                300
+                                300,"Order-400"
                         ),
                         new Position(
                                 "AC2",
                                 "SB2",
                                 "CUSIP1",
-                                -250
+                                -250,"Order-500"
                         ),
                         new Position(
                                 "AC2",
                                 "SB2",
                                 "CUSIP1",
-                                35
+                                35,"Order-600"
                         )
                 ));
         positionDataStream.addSink(new LogSink<>(LOG,

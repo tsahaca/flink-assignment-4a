@@ -20,6 +20,7 @@ public class Position extends IncomingEvent {
     private String subAccount;
     private String cusip;
     private int quantity;
+    private String orderId;
 
     @Override
     public byte[] key() {
