@@ -11,7 +11,7 @@ import org.apache.flink.training.assignments.domain.Order;
  * at most n milliseconds after the earliest elements for timestamp t.
  */
 public class OrderPeriodicWatermarkAssigner implements AssignerWithPeriodicWatermarks<Order> {
-    //private final long maxOutOfOrderness = 3500; // 3.5 seconds
+    private final long maxOutOfOrderness = 3500; // 3.5 seconds
     //private long lastwaterMark;
     private long currentMaxTimestamp;
 
@@ -25,6 +25,6 @@ public class OrderPeriodicWatermarkAssigner implements AssignerWithPeriodicWater
 
     @Override
     public Watermark getCurrentWatermark() {
-        return new Watermark(currentMaxTimestamp);
+        return new Watermark(currentMaxTimestamp - maxOutOfOrderness -1);
     }
 }

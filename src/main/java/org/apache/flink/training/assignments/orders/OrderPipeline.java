@@ -99,16 +99,9 @@ public class OrderPipeline {
         /**
          * Aggegate Positions by Cusip and publish to kafka
          */
-        /**
-        var positionsByCusip = aggregatePositionsByCusip(aggregatedPositionsByAccount);
-        FlinkKafkaProducer010<Tuple2<String, List<Allocation>>> flinkKafkaProducerCusip = new FlinkKafkaProducer010<Tuple2<String, List<Allocation>>>(
-                KAFKA_ADDRESS, OUT_CUSIP, new CusipKeyedSerializationSchema(OUT_CUSIP));
-        positionsByCusip.addSink(flinkKafkaProducerCusip)
-                .name("PublishPositionByCusipToKafka")
-                .uid("PublishPositionByCusipToKafka");
-         */
 
-        var positionsByCusip = aggregatePositionsBySymbol(aggregatedPositionsByAccount);
+        //var positionsByCusip = aggregatePositionsBySymbol(aggregatedPositionsByAccount);
+        var positionsByCusip = aggregatePositionsBySymbol(splitOrderByAccount);
         FlinkKafkaProducer010<PositionByCusip> flinkKafkaProducerCusip = new FlinkKafkaProducer010<PositionByCusip>(
                 KAFKA_ADDRESS, OUT_CUSIP, new SymbolKeyedSerializationSchema(OUT_CUSIP));
         positionsByCusip.addSink(flinkKafkaProducerCusip)
@@ -128,11 +121,6 @@ public class OrderPipeline {
         Properties props = new Properties();
         props.setProperty("bootstrap.servers", KAFKA_ADDRESS);
         props.setProperty("group.id", KAFKA_GROUP);
-         /**
-        Properties prodProps = new Properties();
-        prodProps.put("bootstrap.servers", KAFKA_ADDRESS);
-        */
-
 
         // Create tbe Kafka Consumer here
         // Added KafkaDeserializationSchema
@@ -147,14 +135,10 @@ public class OrderPipeline {
     private DataStream<Position> splitOrderStream(final DataStream<Order> orderStream) {
         DataStream<Position> splitOrderByAccountStream = orderStream
                 .flatMap(new OrderFlatMap())
-                /**
-                .assignTimestampsAndWatermarks(new OrderPeriodicWatermarkAssigner())
-                .name("TimestampWatermark").uid("TimestampWatermark")
-                .windowAll(TumblingEventTimeWindows.of(Time.seconds(10)))
-                .process(new SplitOrderWindowFunction())
-                 */
                 .name("splitOrderByAllocation")
-                .uid("splitOrderByAllocation");
+                .uid("splitOrderByAllocation")
+                .assignTimestampsAndWatermarks(new PositionPeriodicWatermarkAssigner())
+                .name("TimestampWatermark").uid("TimestampWatermark");
         return splitOrderByAccountStream;
     }
 
@@ -168,44 +152,23 @@ public class OrderPipeline {
          * Group the order by account, sub-account and cusip
          */
         var groupOrderByAccountWindowedStream=splitOrderByAccountStream
-                .assignTimestampsAndWatermarks(new PositionPeriodicWatermarkAssigner())
-                .name("TimestampWatermark").uid("TimestampWatermark")
+               // .assignTimestampsAndWatermarks(new PositionPeriodicWatermarkAssigner())
+               // .name("TimestampWatermark").uid("TimestampWatermark")
                 .keyBy(new AccountPositionKeySelector())
-                .timeWindow(Time.seconds(10))
-                //.window(TumblingEventTimeWindows.of(Time.seconds(10)))
+                //.timeWindow(Time.seconds(10))
+                .window(TumblingEventTimeWindows.of(Time.seconds(10)))
                 .sum("quantity")
                 .name("AggregatePositionByActSubActCusip")
                 .uid("AggregatePositionByActSubActCusip");
-
-        /**
-         * Aggregate the position by account,sub-account and cusip
-         */
-        /**
-        var aggregatedPositionsByAccountStream = groupOrderByAccountWindowedStream
-                .apply(new PositionAggregationWindowFunction())
-                .name("AggregatePositionByActSubActCusip")
-                .uid("AggregatePositionByActSubActCusip");
-
-        return aggregatedPositionsByAccountStream;
-         */
         return groupOrderByAccountWindowedStream;
-    }
-
-    private DataStream<Tuple2<String, List<Allocation>>> aggregatePositionsByCusip(DataStream<Position> aggregatedPositionsByAccount){
-        var positionsByCusip = aggregatedPositionsByAccount
-                .keyBy(position -> position.getCusip())
-                .timeWindow(Time.seconds(10))
-                //.apply(new PositionByCusipWindowFunction())
-                .aggregate(new PositionAggregatorByCusip())
-                .name("AggregatePositionByCusip")
-                .uid("AggregatePositionByCusip");
-        return positionsByCusip;
     }
 
     private DataStream<PositionByCusip> aggregatePositionsBySymbol(DataStream<Position> aggregatedPositionsByAccount){
         var positionsByCusip = aggregatedPositionsByAccount
                 .keyBy(position -> position.getCusip())
-                .timeWindow(Time.seconds(10))
+                .window(TumblingEventTimeWindows.of(Time.seconds(10)))
+
+                //.timeWindow(Time.seconds(10))
                 //.apply(new PositionByCusipWindowFunction())
                 .aggregate(new PositionAggregatorBySymbol())
                 .name("AggregatePositionBySymbol")

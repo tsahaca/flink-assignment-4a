@@ -41,13 +41,14 @@ public class PositionAggregatorBySymbol
 	@Override
 	public PositionByCusip merge(PositionByCusip a,
 								 PositionByCusip b) {
-
+        /**
 		PositionByCusip pcusip=new PositionByCusip(a.getCusip(),
 				a.getQuantity()+b.getQuantity(), a.getOrderId());
 		pcusip.setTimestamp(System.currentTimeMillis());
-
-
 		return pcusip;
+		*/
+        a.setQuantity(a.getQuantity()+ b.getQuantity());
+        return a;
 	}
 
 }
