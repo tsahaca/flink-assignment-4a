@@ -41,21 +41,29 @@ public class OrderPipeline {
     private final String OUT_TOPIC;
     private final String KAFKA_GROUP;
     private final String OUT_CUSIP;
+    private final int WM_INTERVAL;
+    private final int WINDOW_SIZE;
+    private final int OUT_ORDERNESS;
+
+
     private static final Logger LOG = LoggerFactory.getLogger(OrderPipeline.class);
 
-    public OrderPipeline(final Map<String,String> params){
-        this.KAFKA_ADDRESS=params.get(IConstants.KAFKA_ADDRESS);
-        this.IN_TOPIC=params.get(IConstants.IN_TOPIC);
-        this.OUT_TOPIC=params.get(IConstants.OUT_TOPIC);
-        this.KAFKA_GROUP=params.get(IConstants.KAFKA_GROUP);
-        this.OUT_CUSIP=params.get(IConstants.OUT_CUSIP);
+    public OrderPipeline(final Map<String,Object> params){
+        this.KAFKA_ADDRESS=(String)params.get(IConstants.KAFKA_ADDRESS);
+        this.IN_TOPIC=(String)params.get(IConstants.IN_TOPIC);
+        this.OUT_TOPIC=(String)params.get(IConstants.OUT_TOPIC);
+        this.KAFKA_GROUP=(String) params.get(IConstants.KAFKA_GROUP);
+        this.OUT_CUSIP=(String) params.get(IConstants.OUT_CUSIP);
+        this.WM_INTERVAL=(int) params.get(IConstants.WM_INTERVAL);
+        this.WINDOW_SIZE=(int) params.get(IConstants.WINDOW_SIZE);
+        this.OUT_ORDERNESS=(int) params.get(IConstants.OUT_ORDERNESS);
     }
 
 
     public void execute() throws Exception{
         // set up streaming execution environment
         var env = StreamExecutionEnvironment.getExecutionEnvironment();
-        env.getConfig().setAutoWatermarkInterval(10000);
+        env.getConfig().setAutoWatermarkInterval(this.WM_INTERVAL);
         env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime);
         //env.setParallelism(ExerciseBase.parallelism);
 
@@ -137,7 +145,7 @@ public class OrderPipeline {
                 .flatMap(new OrderFlatMap())
                 .name("splitOrderByAllocation")
                 .uid("splitOrderByAllocation")
-                .assignTimestampsAndWatermarks(new PositionPeriodicWatermarkAssigner())
+                .assignTimestampsAndWatermarks(new PositionPeriodicWatermarkAssigner(this.OUT_ORDERNESS))
                 .name("TimestampWatermark").uid("TimestampWatermark");
         return splitOrderByAccountStream;
     }
@@ -156,7 +164,7 @@ public class OrderPipeline {
                // .name("TimestampWatermark").uid("TimestampWatermark")
                 .keyBy(new AccountPositionKeySelector())
                 //.timeWindow(Time.seconds(10))
-                .window(TumblingEventTimeWindows.of(Time.seconds(10)))
+                .window(TumblingEventTimeWindows.of(Time.seconds(this.WINDOW_SIZE)))
                 .sum("quantity")
                 .name("AggregatePositionByActSubActCusip")
                 .uid("AggregatePositionByActSubActCusip");
@@ -166,7 +174,7 @@ public class OrderPipeline {
     private DataStream<PositionByCusip> aggregatePositionsBySymbol(DataStream<Position> aggregatedPositionsByAccount){
         var positionsByCusip = aggregatedPositionsByAccount
                 .keyBy(position -> position.getCusip())
-                .window(TumblingEventTimeWindows.of(Time.seconds(10)))
+                .window(TumblingEventTimeWindows.of(Time.seconds(this.WINDOW_SIZE)))
 
                 //.timeWindow(Time.seconds(10))
                 //.apply(new PositionByCusipWindowFunction())

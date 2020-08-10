@@ -23,6 +23,7 @@ public class KafkaOrderAssignmentProcessingTime extends ExerciseBase {
         final String OUT_TOPIC;
         final String KAFKA_GROUP;
         final String OUT_CUSIP; // positionsBySymbol
+        final int WINDOW_SIZE;
 
         try {
             final ParameterTool params = ParameterTool.fromArgs(args);
@@ -31,6 +32,7 @@ public class KafkaOrderAssignmentProcessingTime extends ExerciseBase {
             KAFKA_ADDRESS = params.has("KAFKA_ADDRESS") ? params.get("KAFKA_ADDRESS") : IConstants.DEFASULT_KAFKA_ADDRESS;
             KAFKA_GROUP = params.has("KAFKA_GROUP") ? params.get("KAFKA_GROUP") : "";
             OUT_CUSIP = params.has("OUT_CUSIP") ? params.get("OUT_CUSIP") : IConstants.DEFAULT_OUT_CUSIP;
+            WINDOW_SIZE = params.getInt("WINDOW_SIZE", 10);
         } catch (Exception e) {
             System.err.println("No KAFKA_ADDRESS specified. Please run 'KafkaOrderAssignment \n" +
                     "--KAFKA_ADDRESS <localhost:9092> --IN_TOPIC <in> --OUT_TOPIC <demo-output>', \n" +
@@ -39,12 +41,13 @@ public class KafkaOrderAssignmentProcessingTime extends ExerciseBase {
                     "OUT_TOPIC is position output topic");
             return;
         }
-        final Map<String,String> params = new HashMap<String, String>();
+        final Map<String,Object> params = new HashMap<String, Object>();
         params.put(IConstants.KAFKA_ADDRESS, KAFKA_ADDRESS);
         params.put(IConstants.IN_TOPIC, IN_TOPIC);
         params.put(IConstants.OUT_TOPIC, OUT_TOPIC);
         params.put(IConstants.KAFKA_GROUP, KAFKA_GROUP);
         params.put(IConstants.OUT_CUSIP, OUT_CUSIP);
+        params.put(IConstants.WINDOW_SIZE,WINDOW_SIZE);
 
         final OrderPipelineProcessingTime pipeline = new OrderPipelineProcessingTime(params);
         pipeline.execute();

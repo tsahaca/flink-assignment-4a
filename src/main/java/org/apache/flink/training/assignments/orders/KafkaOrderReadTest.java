@@ -42,7 +42,7 @@ public class KafkaOrderReadTest extends ExerciseBase {
                     "OUT_TOPIC is position output topic");
             return;
         }
-        final Map<String,String> params = new HashMap<String, String>();
+        final Map<String,Object> params = new HashMap<String, Object>();
         params.put(IConstants.KAFKA_ADDRESS, KAFKA_ADDRESS);
         params.put(IConstants.IN_TOPIC, IN_TOPIC);
         params.put(IConstants.OUT_TOPIC, OUT_TOPIC);

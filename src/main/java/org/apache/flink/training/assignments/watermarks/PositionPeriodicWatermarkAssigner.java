@@ -12,9 +12,13 @@ import org.apache.flink.training.assignments.domain.Position;
  * at most n milliseconds after the earliest elements for timestamp t.
  */
 public class PositionPeriodicWatermarkAssigner implements AssignerWithPeriodicWatermarks<Position> {
-    private final long maxOutOfOrderness = 3500; // 3.5 seconds
+    private final long maxOutOfOrderness;// = 3500; // 3.5 seconds
     //private long lastwaterMark;
     private long currentMaxTimestamp;
+
+    public PositionPeriodicWatermarkAssigner(final int outOfOrderness){
+        this.maxOutOfOrderness=outOfOrderness;
+    }
 
 
     @Override

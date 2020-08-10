@@ -42,14 +42,18 @@ public class OrderPipelineProcessingTime {
     private final String OUT_TOPIC;
     private final String KAFKA_GROUP;
     private final String OUT_CUSIP;
+    private final int WINDOW_SIZE;
+
     private static final Logger LOG = LoggerFactory.getLogger(OrderPipelineProcessingTime.class);
 
-    public OrderPipelineProcessingTime(final Map<String,String> params){
-        this.KAFKA_ADDRESS=params.get(IConstants.KAFKA_ADDRESS);
-        this.IN_TOPIC=params.get(IConstants.IN_TOPIC);
-        this.OUT_TOPIC=params.get(IConstants.OUT_TOPIC);
-        this.KAFKA_GROUP=params.get(IConstants.KAFKA_GROUP);
-        this.OUT_CUSIP=params.get(IConstants.OUT_CUSIP);
+    public OrderPipelineProcessingTime(final Map<String,Object> params){
+        this.KAFKA_ADDRESS=(String)params.get(IConstants.KAFKA_ADDRESS);
+        this.IN_TOPIC=(String)params.get(IConstants.IN_TOPIC);
+        this.OUT_TOPIC=(String)params.get(IConstants.OUT_TOPIC);
+        this.KAFKA_GROUP=(String)params.get(IConstants.KAFKA_GROUP);
+        this.OUT_CUSIP=(String)params.get(IConstants.OUT_CUSIP);
+        this.WINDOW_SIZE=(int) params.get(IConstants.WINDOW_SIZE);
+
     }
 
     public void execute() throws Exception{
@@ -151,7 +155,7 @@ public class OrderPipelineProcessingTime {
          */
         var groupOrderByAccountWindowedStream=splitOrderByAccountStream
                 .keyBy(new AccountPositionKeySelector())
-                .window(TumblingProcessingTimeWindows.of(Time.seconds(10)))
+                .window(TumblingProcessingTimeWindows.of(Time.seconds(this.WINDOW_SIZE)))
                 .sum("quantity")
                 .name("AggregatePositionByActSubActCusip")
                 .uid("AggregatePositionByActSubActCusip");
@@ -164,7 +168,7 @@ public class OrderPipelineProcessingTime {
     private DataStream<PositionByCusip> aggregatePositionsBySymbol(DataStream<Position> aggregatedPositionsByAccount) {
         var positionsByCusip = aggregatedPositionsByAccount
                 .keyBy(position -> position.getCusip())
-                .window(TumblingProcessingTimeWindows.of(Time.seconds(10)))
+                .window(TumblingProcessingTimeWindows.of(Time.seconds(this.WINDOW_SIZE)))
                 .aggregate(new PositionAggregatorBySymbol())
                 .name("AggregatePositionBySymbol")
                 .uid("AggregatePositionBySymbol");

@@ -10,4 +10,7 @@ public interface IConstants {
     String DEFAULT_OUT_TOPIC="positionsByAct";
     String DEFAULT_OUT_CUSIP="positionsBySymbol";
     String DEFAULT_IN_TOPIC="in";
+    String WM_INTERVAL="WM_INTERVAL";
+    String WINDOW_SIZE="WINDOW_SIZE";
+    String OUT_ORDERNESS="OUT_ORDERNESS";
  }
