@@ -23,13 +23,13 @@ public class PositionPeriodicWatermarkAssigner implements AssignerWithPeriodicWa
 
     @Override
     public long extractTimestamp(Position element, long previousElementTimestamp) {
-        long timestamp = element.getTimestamp();
-        currentMaxTimestamp = Math.max(currentMaxTimestamp, element.getTimestamp());
+        long timestamp = element.getTimestamp() == 0 ? System.currentTimeMillis() : element.getTimestamp();
+        currentMaxTimestamp = Math.max(currentMaxTimestamp, timestamp);
         return timestamp;
     }
 
     @Override
     public Watermark getCurrentWatermark() {
-        return new Watermark(currentMaxTimestamp - maxOutOfOrderness -1);
+        return new Watermark(currentMaxTimestamp - maxOutOfOrderness);
     }
 }

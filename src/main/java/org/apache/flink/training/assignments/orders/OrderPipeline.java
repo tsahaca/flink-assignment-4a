@@ -65,6 +65,7 @@ public class OrderPipeline {
         var env = StreamExecutionEnvironment.getExecutionEnvironment();
         env.getConfig().setAutoWatermarkInterval(this.WM_INTERVAL);
         env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime);
+        env.disableOperatorChaining();
         //env.setParallelism(ExerciseBase.parallelism);
 
         /**
@@ -118,6 +119,8 @@ public class OrderPipeline {
 
 
         // execute the transformation pipeline
+        System.out.println("Execution Plan");
+        System.out.println(env.getExecutionPlan());
         env.execute("kafkaOrders");
     }
 
