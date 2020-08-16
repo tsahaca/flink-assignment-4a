@@ -73,6 +73,7 @@ public class OrderPipeline {
          */
         var orderStream = env.addSource(readFromKafka())
                 .name("kfkaTopicReader").uid("kfkaTopicReader")
+                .rebalance()
                 .keyBy(order -> order.getCusip());
 
         /**
@@ -163,8 +164,6 @@ public class OrderPipeline {
          * Group the order by account, sub-account and cusip
          */
         var groupOrderByAccountWindowedStream=splitOrderByAccountStream
-               // .assignTimestampsAndWatermarks(new PositionPeriodicWatermarkAssigner())
-               // .name("TimestampWatermark").uid("TimestampWatermark")
                 .keyBy(new AccountPositionKeySelector())
                 //.timeWindow(Time.seconds(10))
                 .window(TumblingEventTimeWindows.of(Time.seconds(this.WINDOW_SIZE)))

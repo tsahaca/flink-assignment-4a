@@ -65,9 +65,9 @@ public class DataStreamTest extends ExerciseBase {
                 LogSink.LoggerEnum.INFO, "**** inputStream {}"));
 
         var output = positionDataStream.keyBy(new AccountPositionKeySelector())
-                //.countWindow(3)
+                .countWindow(3)
                 //.window(TumblingProcessingTimeWindows.of(Time.milliseconds(10)))
-                .timeWindow(Time.milliseconds(3))
+                //.timeWindow(Time.milliseconds(3))
 
                 .sum("quantity");
                 //.apply(new PositionAggregationWindowFunction());
