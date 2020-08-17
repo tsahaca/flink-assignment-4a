@@ -60,6 +60,8 @@ public class OrderPipelineProcessingTime {
         // set up streaming execution environment
         var env = StreamExecutionEnvironment.getExecutionEnvironment();
         env.setStreamTimeCharacteristic(TimeCharacteristic.ProcessingTime);
+        env.disableOperatorChaining();
+
         //env.setParallelism(ExerciseBase.parallelism);
 
         /**

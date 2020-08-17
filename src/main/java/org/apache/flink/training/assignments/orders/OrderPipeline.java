@@ -73,7 +73,7 @@ public class OrderPipeline {
          */
         var orderStream = env.addSource(readFromKafka())
                 .name("kfkaTopicReader").uid("kfkaTopicReader")
-                .rebalance()
+                //.rebalance()
                 .keyBy(order -> order.getCusip());
 
         /**
