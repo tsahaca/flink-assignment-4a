@@ -9,9 +9,9 @@ import java.util.HashMap;
 import java.util.Map;
 
 
-public class KafkaOrderAssignmentProcessingTime extends ExerciseBase {
+public class KafkaOrderSimple extends ExerciseBase {
 
-    private static final Logger LOG = LoggerFactory.getLogger(KafkaOrderAssignmentProcessingTime.class);
+    private static final Logger LOG = LoggerFactory.getLogger(KafkaOrderSimple.class);
 
     /**
     // --KAFKA_ADDRESS kafka.dest.tanmay.wsn.riskfocus.com:9092 --IN_TOPIC in --OUT_TOPIC positionsByAct --OUT_CUSIP positionsBySymbol
@@ -49,7 +49,7 @@ public class KafkaOrderAssignmentProcessingTime extends ExerciseBase {
         params.put(IConstants.OUT_CUSIP, OUT_CUSIP);
         params.put(IConstants.WINDOW_SIZE,WINDOW_SIZE);
 
-        final OrderPipelineProcessingTime pipeline = new OrderPipelineProcessingTime(params);
+        final OrderPipelineSimple pipeline = new OrderPipelineSimple(params);
         pipeline.execute();
     }
 

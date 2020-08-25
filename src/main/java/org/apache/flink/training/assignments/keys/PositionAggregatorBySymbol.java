@@ -47,6 +47,7 @@ public class PositionAggregatorBySymbol
 		pcusip.setTimestamp(System.currentTimeMillis());
 		return pcusip;
 		*/
+
         a.setQuantity(a.getQuantity()+ b.getQuantity());
         return a;
 	}

@@ -9,24 +9,21 @@ import java.util.HashMap;
 import java.util.Map;
 
 
-public class KafkaOrderAssignment extends ExerciseBase {
+public class OrderProcessing extends ExerciseBase {
 
-    private static final Logger LOG = LoggerFactory.getLogger(KafkaOrderAssignment.class);
-
+    private static final Logger LOG = LoggerFactory.getLogger(OrderProcessing.class);
 
     /**
-     // --KAFKA_ADDRESS kafka.dest.tanmay.wsn.riskfocus.com:9092 --IN_TOPIC in --OUT_TOPIC positionsByAct --OUT_CUSIP positionsBySymbol
-     */
+    // --KAFKA_ADDRESS kafka.dest.tanmay.wsn.riskfocus.com:9092 --IN_TOPIC in --OUT_TOPIC positionsByAct --OUT_CUSIP positionsBySymbol
+    */
     public static void main(String[] args) throws Exception {
 
         final String KAFKA_ADDRESS;
         final String IN_TOPIC;
         final String OUT_TOPIC;
         final String KAFKA_GROUP;
-        final String OUT_CUSIP; // positionsByCusip
-        final int WM_INTERVAL;
+        final String OUT_CUSIP; // positionsBySymbol
         final int WINDOW_SIZE;
-        final int OUT_ORDERNESS;
 
         try {
             final ParameterTool params = ParameterTool.fromArgs(args);
@@ -35,11 +32,7 @@ public class KafkaOrderAssignment extends ExerciseBase {
             KAFKA_ADDRESS = params.has("KAFKA_ADDRESS") ? params.get("KAFKA_ADDRESS") : IConstants.DEFASULT_KAFKA_ADDRESS;
             KAFKA_GROUP = params.has("KAFKA_GROUP") ? params.get("KAFKA_GROUP") : "";
             OUT_CUSIP = params.has("OUT_CUSIP") ? params.get("OUT_CUSIP") : IConstants.DEFAULT_OUT_CUSIP;
-            WM_INTERVAL = params.getInt("WM_INTERVAL", 10000);
-            WINDOW_SIZE = params.getInt("WINDOW_SIZE", 10);
-            OUT_ORDERNESS = params.getInt("OUT_ORDERNESS", 0);
-
-
+            WINDOW_SIZE = params.getInt("WINDOW_SIZE", 1);
         } catch (Exception e) {
             System.err.println("No KAFKA_ADDRESS specified. Please run 'KafkaOrderAssignment \n" +
                     "--KAFKA_ADDRESS <localhost:9092> --IN_TOPIC <in> --OUT_TOPIC <demo-output>', \n" +
@@ -54,11 +47,9 @@ public class KafkaOrderAssignment extends ExerciseBase {
         params.put(IConstants.OUT_TOPIC, OUT_TOPIC);
         params.put(IConstants.KAFKA_GROUP, KAFKA_GROUP);
         params.put(IConstants.OUT_CUSIP, OUT_CUSIP);
-        params.put(IConstants.WM_INTERVAL,WM_INTERVAL);
         params.put(IConstants.WINDOW_SIZE,WINDOW_SIZE);
-        params.put(IConstants.OUT_ORDERNESS,OUT_ORDERNESS);
 
-        final OrderPipeline pipeline = new OrderPipeline(params);
+        final OrderPipelineProcessingTime pipeline = new OrderPipelineProcessingTime(params);
         pipeline.execute();
     }
 

@@ -1,8 +1,12 @@
 package org.apache.flink.training.assignments.orders;
 
+import org.apache.flink.api.common.functions.ReduceFunction;
+import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.streaming.api.TimeCharacteristic;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
+import org.apache.flink.streaming.api.functions.KeyedProcessFunction;
+import org.apache.flink.streaming.api.functions.ProcessFunction;
 import org.apache.flink.streaming.api.windowing.assigners.TumblingProcessingTimeWindows;
 import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.training.assignments.domain.Position;
@@ -10,6 +14,7 @@ import org.apache.flink.training.assignments.keys.AccountPositionKeySelector;
 import org.apache.flink.training.assignments.keys.PositionAggregationWindowFunction;
 import org.apache.flink.training.assignments.sinks.LogSink;
 import org.apache.flink.training.assignments.utils.ExerciseBase;
+import org.apache.flink.util.Collector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,19 +50,19 @@ public class DataStreamTest extends ExerciseBase {
                         new Position(
                                 "AC2",
                                 "SB2",
-                                "CUSIP1",
+                                "CUSIP2",
                                 300,"Order-400"
                         ),
                         new Position(
                                 "AC2",
                                 "SB2",
-                                "CUSIP1",
+                                "CUSIP2",
                                 -250,"Order-500"
                         ),
                         new Position(
                                 "AC2",
                                 "SB2",
-                                "CUSIP1",
+                                "CUSIP2",
                                 35,"Order-600"
                         )
                 ));
@@ -65,14 +70,20 @@ public class DataStreamTest extends ExerciseBase {
                 LogSink.LoggerEnum.INFO, "**** inputStream {}"));
 
         var output = positionDataStream.keyBy(new AccountPositionKeySelector())
-                .countWindow(3)
-                //.window(TumblingProcessingTimeWindows.of(Time.milliseconds(10)))
-                //.timeWindow(Time.milliseconds(3))
-
                 .sum("quantity");
-                //.apply(new PositionAggregationWindowFunction());
+
         output.addSink(new LogSink<>(LOG,
-                LogSink.LoggerEnum.INFO, "**** outputStream {}"));
+                LogSink.LoggerEnum.INFO, "**** positionsByActSubActCusip {}"));
+
+        var cusip = positionDataStream.keyBy(position -> position.getCusip())
+                .sum("quantity");
+        //.apply(new PositionAggregationWindowFunction());
+        cusip.addSink(new LogSink<>(LOG,
+                LogSink.LoggerEnum.INFO, "**** positionsBySymbol {}"));
+
+
+
+
         env.execute("DataStreamTest");
 
 

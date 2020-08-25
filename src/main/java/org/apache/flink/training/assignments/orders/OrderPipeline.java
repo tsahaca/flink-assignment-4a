@@ -73,6 +73,8 @@ public class OrderPipeline {
          */
         var orderStream = env.addSource(readFromKafka())
                 .name("kfkaTopicReader").uid("kfkaTopicReader")
+                .assignTimestampsAndWatermarks(new OrderPeriodicWatermarkAssigner(this.OUT_ORDERNESS))
+                .name("TimestampWatermark").uid("TimestampWatermark")
                 //.rebalance()
                 .keyBy(order -> order.getCusip());
 
@@ -148,9 +150,12 @@ public class OrderPipeline {
         DataStream<Position> splitOrderByAccountStream = orderStream
                 .flatMap(new OrderFlatMap())
                 .name("splitOrderByAllocation")
-                .uid("splitOrderByAllocation")
-                .assignTimestampsAndWatermarks(new PositionPeriodicWatermarkAssigner(this.OUT_ORDERNESS))
-                .name("TimestampWatermark").uid("TimestampWatermark");
+                .uid("splitOrderByAllocation");
+
+        /**
+        .assignTimestampsAndWatermarks(new PositionPeriodicWatermarkAssigner(this.OUT_ORDERNESS))
+        .name("TimestampWatermark").uid("TimestampWatermark");
+         */
         return splitOrderByAccountStream;
     }
 

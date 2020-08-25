@@ -1,33 +1,21 @@
 package org.apache.flink.training.assignments.orders;
 
 import org.apache.flink.api.common.functions.MapFunction;
-import org.apache.flink.api.java.tuple.Tuple2;
-import org.apache.flink.streaming.api.TimeCharacteristic;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
-import org.apache.flink.streaming.api.windowing.assigners.TumblingProcessingTimeWindows;
-import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer010;
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaProducer010;
-import org.apache.flink.training.assignments.domain.Allocation;
 import org.apache.flink.training.assignments.domain.Order;
 import org.apache.flink.training.assignments.domain.Position;
 import org.apache.flink.training.assignments.domain.PositionByCusip;
 import org.apache.flink.training.assignments.keys.AccountPositionKeySelector;
 import org.apache.flink.training.assignments.keys.OrderFlatMap;
-
-import org.apache.flink.training.assignments.keys.PositionAggregatorByCusip;
-import org.apache.flink.training.assignments.keys.PositionAggregatorBySymbol;
-import org.apache.flink.training.assignments.serializers.CusipKeyedSerializationSchema;
 import org.apache.flink.training.assignments.serializers.OrderKafkaDeserializationSchema;
 import org.apache.flink.training.assignments.serializers.PositionKeyedSerializationSchema;
-
 import org.apache.flink.training.assignments.serializers.SymbolKeyedSerializationSchema;
-import org.apache.flink.training.assignments.utils.ExerciseBase;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
@@ -37,7 +25,7 @@ import java.util.Properties;
  * from kafka and create positions by account, sub-account
  * cusip and publish to kafka
  */
-public class OrderPipelineProcessingTime {
+public class OrderPipelineSimple {
     private final String KAFKA_ADDRESS;
     private final String IN_TOPIC;
     private final String OUT_TOPIC;
@@ -45,9 +33,9 @@ public class OrderPipelineProcessingTime {
     private final String OUT_CUSIP;
     private final int WINDOW_SIZE;
 
-    private static final Logger LOG = LoggerFactory.getLogger(OrderPipelineProcessingTime.class);
+    private static final Logger LOG = LoggerFactory.getLogger(OrderPipelineSimple.class);
 
-    public OrderPipelineProcessingTime(final Map<String,Object> params){
+    public OrderPipelineSimple(final Map<String,Object> params){
         this.KAFKA_ADDRESS=(String)params.get(IConstants.KAFKA_ADDRESS);
         this.IN_TOPIC=(String)params.get(IConstants.IN_TOPIC);
         this.OUT_TOPIC=(String)params.get(IConstants.OUT_TOPIC);
@@ -60,10 +48,8 @@ public class OrderPipelineProcessingTime {
     public void execute() throws Exception{
         // set up streaming execution environment
         var env = StreamExecutionEnvironment.getExecutionEnvironment();
-        env.setStreamTimeCharacteristic(TimeCharacteristic.ProcessingTime);
         env.disableOperatorChaining();
 
-        //env.setParallelism(ExerciseBase.parallelism);
 
         /**
          * Create the Order Stream from Kafka and keyBy cusip
@@ -78,37 +64,29 @@ public class OrderPipelineProcessingTime {
          */
 
         /**
-         * Split the orders by allocations
+         * Split the orders by allocations to create Positions By Act, Sub Act and Symbol
          */
-        var splitOrderByAccount = splitOrderStream(orderStream);
-        /**
-        splitOrderByAccount.addSink(new LogSink<>(LOG,
-                LogSink.LoggerEnum.INFO, "**** splitOrderByAccount {}"));
-         */
-        /**
-         * Create positions by aggregating allocations
-         * by account,sub-account and cusip
-         */
-        var aggregatedPositionsByAccount = createPositions(splitOrderByAccount);
-        //aggregatedPositionsByAccount.addSink(new LogSink<>(LOG,
-                //LogSink.LoggerEnum.INFO, "**** aggregatedPositionsByAccount {}"));
+        var splitOrderByAllocation = splitOrderStream(orderStream);
 
+        var positionsByAct =  splitOrderByAllocation.keyBy(new AccountPositionKeySelector())
+                .sum("quantity")
+                .name("AggregatePositionByActSubActCusip")
+                .uid("AggregatePositionByActSubActCusip");
         /**
          * Publish the positions to kafka
          * set account number as the key of Kafa Record
          */
         FlinkKafkaProducer010<Position> flinkKafkaProducer = new FlinkKafkaProducer010<Position>(
                 KAFKA_ADDRESS, OUT_TOPIC, new PositionKeyedSerializationSchema(OUT_TOPIC));
-        aggregatedPositionsByAccount.addSink(flinkKafkaProducer)
-                .name("PublishPositionToKafka")
-                .uid("PublishPositionToKafka");
+        positionsByAct.addSink(flinkKafkaProducer)
+                .name("PublishPositionByActToKafka")
+                .uid("PublishPositionByActToKafka");
 
         /**
          * Aggegate Positions by Cusip and publish to kafka
          */
 
-        //var positionsByCusip = aggregatePositionsBySymbol(aggregatedPositionsByAccount);
-        var positionsByCusip = aggregatePositionsBySymbol(splitOrderByAccount);
+        var positionsByCusip = aggregatePositionsBySymbol(splitOrderByAllocation);
 
         FlinkKafkaProducer010<PositionByCusip> flinkKafkaProducerCusip = new FlinkKafkaProducer010<PositionByCusip>(
                 KAFKA_ADDRESS, OUT_CUSIP, new SymbolKeyedSerializationSchema(OUT_CUSIP));
@@ -118,7 +96,7 @@ public class OrderPipelineProcessingTime {
 
 
         // execute the transformation pipeline
-        env.execute("kafkaOrders");
+        env.execute("kafkaOrdersSimple");
     }
 
     /**
@@ -148,36 +126,24 @@ public class OrderPipelineProcessingTime {
         return splitOrderByAccountStream;
     }
 
-    /**
-     * Create positions
-     * @param splitOrderByAccountStream
-     * @return
-     */
-    private DataStream<Position> createPositions(final DataStream<Position> splitOrderByAccountStream){
-        /**
-         * Group the order by account, sub-account and cusip
-         */
-        var groupOrderByAccountWindowedStream=splitOrderByAccountStream
-                .keyBy(new AccountPositionKeySelector())
-                .window(TumblingProcessingTimeWindows.of(Time.seconds(this.WINDOW_SIZE)))
-                .sum("quantity")
-                .name("AggregatePositionByActSubActCusip")
-                .uid("AggregatePositionByActSubActCusip");
+    private DataStream<PositionByCusip> aggregatePositionsBySymbol(DataStream<Position> splitOrderByAllocation) {
 
-        return groupOrderByAccountWindowedStream;
-    }
-
-
-
-    private DataStream<PositionByCusip> aggregatePositionsBySymbol(DataStream<Position> splitOrderByAccountStream) {
-
-        var positionsByCusip = splitOrderByAccountStream
+        var positionsByCusip = splitOrderByAllocation
                 .keyBy(position -> position.getCusip())
-                .window(TumblingProcessingTimeWindows.of(Time.seconds(this.WINDOW_SIZE)))
-                .aggregate(new PositionAggregatorBySymbol())
+                .sum("quantity")
                 .name("AggregatePositionBySymbol")
                 .uid("AggregatePositionBySymbol");
-        return positionsByCusip;
+
+        var cusipPositions =  positionsByCusip.map(new MapFunction<Position, PositionByCusip>() {
+            @Override
+            public PositionByCusip map(Position value) throws Exception {
+                PositionByCusip result = new PositionByCusip(value.getCusip(), value.getQuantity(), value.getOrderId());
+                result.setTimestamp(value.getTimestamp());
+                return  result;
+            }})
+                .name("MapPositiontoPositionByCusip")
+                .uid("MapPositiontoPositionByCusip");
+        return cusipPositions;
 
     }
 
