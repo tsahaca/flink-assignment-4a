@@ -35,7 +35,7 @@ public class OrderEventTime extends ExerciseBase {
             KAFKA_ADDRESS = params.has("KAFKA_ADDRESS") ? params.get("KAFKA_ADDRESS") : IConstants.DEFASULT_KAFKA_ADDRESS;
             KAFKA_GROUP = params.has("KAFKA_GROUP") ? params.get("KAFKA_GROUP") : "";
             OUT_CUSIP = params.has("OUT_CUSIP") ? params.get("OUT_CUSIP") : IConstants.DEFAULT_OUT_CUSIP;
-            WM_INTERVAL = params.getInt("WM_INTERVAL", 999);
+            WM_INTERVAL = params.getInt("WM_INTERVAL", 200);
             WINDOW_SIZE = params.getInt("WINDOW_SIZE", 1);
             OUT_ORDERNESS = params.getInt("OUT_ORDERNESS", 0);
 
