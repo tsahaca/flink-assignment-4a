@@ -29,7 +29,7 @@ public class PositionAggregatorBySymbol
 	public PositionByCusip add(Position value, PositionByCusip accumulator) {
 		accumulator.setCusip(value.getCusip());
 		accumulator.setQuantity(accumulator.getQuantity() + value.getQuantity());
-		accumulator.setOrderId(value.getOrderId());
+		//accumulator.setOrderId(value.getOrderId());
 		return accumulator;
 	}
 

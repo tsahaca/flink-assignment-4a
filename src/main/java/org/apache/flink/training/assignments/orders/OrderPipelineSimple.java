@@ -5,9 +5,9 @@ import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer010;
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaProducer010;
-import org.apache.flink.training.assignments.domain.Order;
-import org.apache.flink.training.assignments.domain.Position;
-import org.apache.flink.training.assignments.domain.PositionByCusip;
+import org.apache.flink.training.assignments.domain.*;
+import org.apache.flink.training.assignments.functions.OrderFlatMapCusip;
+import org.apache.flink.training.assignments.functions.OrderMapCusip;
 import org.apache.flink.training.assignments.keys.AccountPositionKeySelector;
 import org.apache.flink.training.assignments.keys.OrderFlatMap;
 import org.apache.flink.training.assignments.serializers.OrderKafkaDeserializationSchema;
@@ -72,6 +72,7 @@ public class OrderPipelineSimple {
                 .sum("quantity")
                 .name("AggregatePositionByActSubActCusip")
                 .uid("AggregatePositionByActSubActCusip");
+
         /**
          * Publish the positions to kafka
          * set account number as the key of Kafa Record
@@ -86,7 +87,11 @@ public class OrderPipelineSimple {
          * Aggegate Positions by Cusip and publish to kafka
          */
 
-        var positionsByCusip = aggregatePositionsBySymbol(splitOrderByAllocation);
+        var positionsByCusip = aggregatePositionsBySymbol(orderStream)
+                .keyBy(positionByCusip -> positionByCusip.getCusip())
+                .sum("quantity")
+                .name("AggregatePositionBySymbol")
+                .uid("AggregatePositionBySymbol");
 
         FlinkKafkaProducer010<PositionByCusip> flinkKafkaProducerCusip = new FlinkKafkaProducer010<PositionByCusip>(
                 KAFKA_ADDRESS, OUT_CUSIP, new SymbolKeyedSerializationSchema(OUT_CUSIP));
@@ -96,7 +101,7 @@ public class OrderPipelineSimple {
 
 
         // execute the transformation pipeline
-        env.execute("kafkaOrdersSimple");
+        env.execute("kafkaOrders");
     }
 
     /**
@@ -126,25 +131,12 @@ public class OrderPipelineSimple {
         return splitOrderByAccountStream;
     }
 
-    private DataStream<PositionByCusip> aggregatePositionsBySymbol(DataStream<Position> splitOrderByAllocation) {
-
-        var positionsByCusip = splitOrderByAllocation
-                .keyBy(position -> position.getCusip())
-                .sum("quantity")
-                .name("AggregatePositionBySymbol")
-                .uid("AggregatePositionBySymbol");
-
-        var cusipPositions =  positionsByCusip.map(new MapFunction<Position, PositionByCusip>() {
-            @Override
-            public PositionByCusip map(Position value) throws Exception {
-                PositionByCusip result = new PositionByCusip(value.getCusip(), value.getQuantity(), value.getOrderId());
-                result.setTimestamp(value.getTimestamp());
-                return  result;
-            }})
-                .name("MapPositiontoPositionByCusip")
-                .uid("MapPositiontoPositionByCusip");
+    private DataStream<PositionByCusip> aggregatePositionsBySymbol(DataStream<Order> orderStream) {
+        var cusipPositions =  orderStream
+                .map(new OrderMapCusip())
+                .name("MapOrderToPositionByCusip")
+                .uid("MapOrderToPositionByCusip");
         return cusipPositions;
-
     }
 
 
