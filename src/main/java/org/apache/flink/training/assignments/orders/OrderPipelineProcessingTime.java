@@ -13,6 +13,7 @@ import org.apache.flink.training.assignments.domain.Allocation;
 import org.apache.flink.training.assignments.domain.Order;
 import org.apache.flink.training.assignments.domain.Position;
 import org.apache.flink.training.assignments.domain.PositionByCusip;
+import org.apache.flink.training.assignments.functions.OrderMapCusip;
 import org.apache.flink.training.assignments.keys.AccountPositionKeySelector;
 import org.apache.flink.training.assignments.keys.OrderFlatMap;
 
@@ -107,8 +108,12 @@ public class OrderPipelineProcessingTime {
          * Aggegate Positions by Cusip and publish to kafka
          */
 
-        //var positionsByCusip = aggregatePositionsBySymbol(aggregatedPositionsByAccount);
-        var positionsByCusip = aggregatePositionsBySymbol(splitOrderByAccount);
+        var positionsByCusip = aggregatePositionsBySymbol(orderStream)
+                .keyBy(positionByCusip -> positionByCusip.getCusip())
+                .window(TumblingProcessingTimeWindows.of(Time.seconds(this.WINDOW_SIZE)))
+                .sum("quantity")
+                .name("AggregatePositionBySymbol")
+                .uid("AggregatePositionBySymbol");
 
         FlinkKafkaProducer010<PositionByCusip> flinkKafkaProducerCusip = new FlinkKafkaProducer010<PositionByCusip>(
                 KAFKA_ADDRESS, OUT_CUSIP, new SymbolKeyedSerializationSchema(OUT_CUSIP));
@@ -169,16 +174,12 @@ public class OrderPipelineProcessingTime {
 
 
 
-    private DataStream<PositionByCusip> aggregatePositionsBySymbol(DataStream<Position> splitOrderByAccountStream) {
-
-        var positionsByCusip = splitOrderByAccountStream
-                .keyBy(position -> position.getCusip())
-                .window(TumblingProcessingTimeWindows.of(Time.seconds(this.WINDOW_SIZE)))
-                .aggregate(new PositionAggregatorBySymbol())
-                .name("AggregatePositionBySymbol")
-                .uid("AggregatePositionBySymbol");
-        return positionsByCusip;
-
+    private DataStream<PositionByCusip> aggregatePositionsBySymbol(DataStream<Order> orderStream) {
+        var cusipPositions =  orderStream
+                .map(new OrderMapCusip())
+                .name("MapOrderToPositionByCusip")
+                .uid("MapOrderToPositionByCusip");
+        return cusipPositions;
     }
 
 

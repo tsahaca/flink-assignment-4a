@@ -6,6 +6,7 @@ import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.KeyedProcessFunction;
 import org.apache.flink.streaming.api.windowing.assigners.TumblingEventTimeWindows;
+import org.apache.flink.streaming.api.windowing.assigners.TumblingProcessingTimeWindows;
 import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer010;
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaProducer010;
@@ -13,6 +14,7 @@ import org.apache.flink.training.assignments.domain.Allocation;
 import org.apache.flink.training.assignments.domain.Order;
 import org.apache.flink.training.assignments.domain.Position;
 import org.apache.flink.training.assignments.domain.PositionByCusip;
+import org.apache.flink.training.assignments.functions.OrderMapCusip;
 import org.apache.flink.training.assignments.keys.*;
 import org.apache.flink.training.assignments.serializers.CusipKeyedSerializationSchema;
 import org.apache.flink.training.assignments.serializers.OrderKafkaDeserializationSchema;
@@ -113,7 +115,13 @@ public class OrderPipeline {
          */
 
         //var positionsByCusip = aggregatePositionsBySymbol(aggregatedPositionsByAccount);
-        var positionsByCusip = aggregatePositionsBySymbol(splitOrderByAccount);
+        var positionsByCusip = aggregatePositionsBySymbol(orderStream)
+                .keyBy(positionByCusip -> positionByCusip.getCusip())
+                .window(TumblingEventTimeWindows.of(Time.seconds(this.WINDOW_SIZE)))
+                .sum("quantity")
+                .name("AggregatePositionBySymbol")
+                .uid("AggregatePositionBySymbol");
+
         FlinkKafkaProducer010<PositionByCusip> flinkKafkaProducerCusip = new FlinkKafkaProducer010<PositionByCusip>(
                 KAFKA_ADDRESS, OUT_CUSIP, new SymbolKeyedSerializationSchema(OUT_CUSIP));
         positionsByCusip.addSink(flinkKafkaProducerCusip)
@@ -178,17 +186,12 @@ public class OrderPipeline {
         return groupOrderByAccountWindowedStream;
     }
 
-    private DataStream<PositionByCusip> aggregatePositionsBySymbol(DataStream<Position> aggregatedPositionsByAccount){
-        var positionsByCusip = aggregatedPositionsByAccount
-                .keyBy(position -> position.getCusip())
-                .window(TumblingEventTimeWindows.of(Time.seconds(this.WINDOW_SIZE)))
-
-                //.timeWindow(Time.seconds(10))
-                //.apply(new PositionByCusipWindowFunction())
-                .aggregate(new PositionAggregatorBySymbol())
-                .name("AggregatePositionBySymbol")
-                .uid("AggregatePositionBySymbol");
-        return positionsByCusip;
+    private DataStream<PositionByCusip> aggregatePositionsBySymbol(DataStream<Order> orderStream) {
+        var cusipPositions =  orderStream
+                .map(new OrderMapCusip())
+                .name("MapOrderToPositionByCusip")
+                .uid("MapOrderToPositionByCusip");
+        return cusipPositions;
     }
 
 }
