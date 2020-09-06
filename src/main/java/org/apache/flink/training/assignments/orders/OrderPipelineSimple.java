@@ -1,13 +1,12 @@
 package org.apache.flink.training.assignments.orders;
 
-import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer010;
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaProducer010;
 import org.apache.flink.training.assignments.domain.*;
-import org.apache.flink.training.assignments.functions.OrderFlatMapCusip;
 import org.apache.flink.training.assignments.functions.OrderMapCusip;
+import org.apache.flink.training.assignments.functions.PositionMapCusip;
 import org.apache.flink.training.assignments.keys.AccountPositionKeySelector;
 import org.apache.flink.training.assignments.keys.OrderFlatMap;
 import org.apache.flink.training.assignments.serializers.OrderKafkaDeserializationSchema;
@@ -87,7 +86,7 @@ public class OrderPipelineSimple {
          * Aggegate Positions by Cusip and publish to kafka
          */
 
-        var positionsByCusip = aggregatePositionsBySymbol(orderStream)
+        var positionsByCusip = aggregatePositionsBySymbol(splitOrderByAllocation)
                 .keyBy(positionByCusip -> positionByCusip.getCusip())
                 .sum("quantity")
                 .name("AggregatePositionBySymbol")
@@ -130,7 +129,7 @@ public class OrderPipelineSimple {
                 .uid("splitOrderByAllocation");
         return splitOrderByAccountStream;
     }
-
+   /**
     private DataStream<PositionByCusip> aggregatePositionsBySymbol(DataStream<Order> orderStream) {
         var cusipPositions =  orderStream
                 .map(new OrderMapCusip())
@@ -138,7 +137,14 @@ public class OrderPipelineSimple {
                 .uid("MapOrderToPositionByCusip");
         return cusipPositions;
     }
-
+   */
+    private DataStream<PositionByCusip> aggregatePositionsBySymbol(DataStream<Position> positionDataStream) {
+        var cusipPositions =  positionDataStream
+                .map(new PositionMapCusip())
+                .name("MapPositionToPositionByCusip")
+                .uid("MapPositionToPositionByCusip");
+        return cusipPositions;
+    }
 
 
 }
